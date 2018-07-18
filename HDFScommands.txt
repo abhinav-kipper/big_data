@@ -1,0 +1,76 @@
+HDFS Commands
+Create a file a.txt on local file system
+Use vim as wont get other editors always
+
+1.Copy a file from LFS to HDFS
+hadoop fs -copyFromLocal src_destination target_destination
+hadoop fs -copyFromLocal /home/mudgal_abhinav19/a.txt /user/mudgal_abhinav19/
+This fs is like object of file system as hadoop is in java
+
+/user/mudgal_abhinav19/ ----This because only have access to place here on hadoop not elsewhere
+
+All replicas created divided on data nodes Everything done.
+We just putted the file to the HDFS.
+
+Here Edupristine might have Replication factor 1.
+
+This is similiar to how we work in Real time Production
+Winscp Small files transfer
+
+2.Change content of file a.txt on hdfs directly
+Hadoop is WRITE once Read many times.
+It means cannot do it after putting on HDFS.
+So Delete the file.And place the modified file back to HDFS.
+
+
+In Real works, Data comes from other sources Logs,databases etc
+We generally dont put dataon Hadoop.
+Just its made to analyse the data.
+
+Its not the Replacement of RDBMS.
+
+OLTP : Real time Processing
+OLAP : Analytics Processing  
+
+3. Copy a file from HDFS to LFS
+A.Create a dir in LFS name data
+B.hadoop fs -copyToLocal /user/username/a.txt /home/username/data
+
+4.Create a directory on HDFS
+hadoop fs  -mkdir /user/username/my_datasets
+
+4.Copy data from one HDFS Location to  other HDFS location
+hadoop fs -cp /user/mudgal_abhinav19/a.txt /user/mudgal_abhinav19/my_datasets/
+
+5.Rename or move a file on hdfs
+hadoop fs -mv /user/mudgal_abhinav/my_datasets/a.txt
+/user/mudgal_abhinav/my_datasets/b.txt
+
+6. put ----alternate of copyFromLocal
+hadoop fs -put /home/mudgal_abhinav19/c.txt
+/user/mudgal_abhinav19
+
+7. get ---alternate of copytolocal
+
+
+***********************************
+hadoop fs -ls /
+What do you mean by root of hadoop here which you are ls ing?
+
+cd /etc/hadoop/conf
+Somebody already configured it.
+
+
+hdfs://ip-172-31-20-89.us-west-2.compute.internal:8020  NameNode 8020port
+NameNode is a machine
+Machine has an IP.
+
+
+hadoop fs -ls hdfs://ip-172-31-20-89.us-west-2.compute.internal:8020  
+It is same as hadoop fs -ls /
+
+If setup in laptop--installed hadoop directly
+hadoop fs -ls hdfs://lcalhost:/8020
+
+8. Delete
+hadoop fs -rm /user/mudgal_abhinav19/a.txt

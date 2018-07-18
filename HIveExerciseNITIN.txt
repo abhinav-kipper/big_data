@@ -1,0 +1,302 @@
+Hive  Not Case Sensitive
+1. Internal (Managed table)vs External Table
+
+
+MANAGED TABLE
+
+A.CREATE DATABASE databasename(say abh);
+B. SHOW DATABASES;
+C. USE DATABASENAME;
+
+***SET hive.cli.print.current.db; This is always small.
+Default is False
+
+***SET hive.cli.print.current.db=true;
+Now Looks  like 
+hive (abh)>
+
+D. CREATE TABLE employee
+(
+id int,
+name string,
+salary bigint
+)
+ROW FORMAT DELIMITED FIELDS TERMINATED BY ',';
+
+
+Meta data ..
+
+***Ctrl A (^A) is the default and most common delimiter.
+To write it press ctrl v then ctrl a
+
+
+E. Loading data in file
+load data local inpath '/home/mudgal_abhinav19/emp.txt' into table employee;
+
+File emp.txt moved to user/hive/warehouse/abh.db/employee .
+
+F. Select * from employee where salary > 5000;
+
+See reducer intelligently not called as it can be  done by mapper only 
+simply context.write data greater than 5000 from map only .
+
+G.show create table employee;
+
+
+CREATE TABLE `employee`(
+  `id` int,
+  `name` string,
+  `salary` bigint)
+ROW FORMAT SERDE
+  'org.apache.hadoop.hive.serde2.lazy.LazySimpleSerDe'
+WITH SERDEPROPERTIES (
+  'field.delim'=',',
+  'serialization.format'=',')
+STORED AS INPUTFORMAT
+  'org.apache.hadoop.mapred.TextInputFormat'
+OUTPUTFORMAT
+  'org.apache.hadoop.hive.ql.io.HiveIgnoreKeyTextOutputFormat'
+LOCATION
+  'hdfs://ip-172-31-20-89.us-west-2.compute.internal:8020/user/hive/warehouse/abh.db/employee'
+TBLPROPERTIES (
+  'COLUMN_STATS_ACCURATE'='true',
+  'numFiles'='1',
+  'totalSize'='40',
+  'transient_lastDdlTime'='1498979227')
+
+Data is always on hdfs 
+Just in internal location name is hive warehouse
+in external some other location
+
+Q. What is SERDE in hive?
+
+H. Drop table employee;
+
+As it was managed table data as well as metadata both are lost now.
+
+EXTERNAL TABLE
+
+1. Create a directory employee_data on hdfs and put emp.txt in it . in terminal
+
+A. CREATE EXTERNAL TABLE employee
+(
+id int,
+name string,
+salary bigint
+)
+ROW FORMAT DELIMITED FIELDS TERMINATED BY ',' LOCATION '/user/mudgal_abhinav19/employee_data';
+
+
+2.Create emp1.txt in employee_data
+
+Now data appended
+So coming dumping data automatically comes in table as it is linkedi to directory employee_data. So external table advantageous.
+
+B. Drop table employee;
+This time only meta data is lost. Data is not lost.
+
+Internal table created for Intermediate tables which are going to be dumped and all.
+
+
+
+Drivers
+
+CREATE DATABASE IF NOT EXISTS abhi;
+USE abhi;
+
+CREATE TABLE drivers (
+driverId INT,
+name STRING,
+ssn BIGINT,
+location STRING,
+certified STRING,
+wageplan STRING
+)
+ROW FORMAT DELIMITED
+FIELDS TERMINATED BY ','
+STORED AS TEXTFILE; 
+
+LOAD DATA LOCAL INPATH ‘{your local path to}/drivers.csv' INTO TABLE drivers;
+
+
+CREATE TABLE timesheet (
+driverId INT,
+week INT,
+hours_logged INT,
+miles_logged INT
+)
+ROW FORMAT DELIMITED
+FIELDS TERMINATED BY ',';
+
+
+
+hive -f /home/mudgal_abhinav19/hive_script.hql;
+
+
+INCLUDE hivesql file that I made.
+
+
+
+ROW Columnar (RC)
+
+
+**
+show create table aggr_final_rc;
+
+
+
+CREATE TABLE `aggr_final_rc`(
+  `driverid` int,
+  `name` string,
+  `totalhours` bigint,
+  `totalmiles` bigint)
+ROW FORMAT SERDE
+  'org.apache.hadoop.hive.serde2.columnar.ColumnarSerDe'
+STORED AS INPUTFORMAT
+  'org.apache.hadoop.hive.ql.io.RCFileInputFormat'
+OUTPUTFORMAT
+  'org.apache.hadoop.hive.ql.io.RCFileOutputFormat'
+LOCATION
+  'hdfs://e2e-27-137.e2enetworks.net.in:8020/user/hive/warehouse/abhi.db/aggr_final_rc'
+TBLPROPERTIES (
+  'COLUMN_STATS_ACCURATE'='true',
+  'numFiles'='1',
+  'numRows'='34',
+  'rawDataSize'='825',
+  'totalSize'='954',
+  'transient_lastDdlTime'='1499511055')
+
+
+////TO USE UNIX CMMNDS IN HIVE
+ dfs -ls /user/hive/warehouse/abhi.db/aggr_final_rc
+dfs -cat  /user/hive/warehouse/abhi.db/aggr_final_orc/000000_0
+
+
+
+CREATE EXTERNAL TABLE truck_events_external (
+driverId INT,
+truckId INT,
+eventTime STRING,
+eventType STRING,
+longitude STRING,
+latitude STRING,
+eventKey STRING,
+correlationId STRING,
+driverName STRING,
+routeId STRING,
+routeName STRING,
+eventDate STRING
+)
+ROW FORMAT DELIMITED
+FIELDS TERMINATED BY ','
+STORED AS TEXTFILE
+LOCATION '/user/mudgal_abhinav19/truck_event'; 
+
+
+CREATE TABLE truck_events_partitioned (
+driverId INT,
+truckId INT,
+eventTime STRING,
+eventType STRING,
+longitude STRING,
+latitude STRING,
+eventKey STRING,
+correlationId STRING,
+driverName STRING,
+routeId STRING,
+routeName STRING,
+eventDate STRING
+)
+PARTITIONED BY(eventDateKey STRING)
+ROW FORMAT DELIMITED
+FIELDS TERMINATED BY ','
+STORED AS SEQUENCEFILE;
+
+
+
+
+
+..............................
+Created a table external or internal
+
+
+ CREATE EXTERNAL TABLE country(
+    > id INT,
+    > name STRING,
+    > country_cd STRING)
+    > ROW FORMAT DELIMITED
+    > FIELDS TERMINATED BY ','
+    > LOCATION '/user/mudgal_abhinav19/partTableFolder';
+
+
+ LOAD DATA LOCAL INPATH '/home/mudgal_abhinav19/partfile.txt' INTO TABLE country;
+
+
+select * from country;
+OK
+1       nitin   usa
+2       rahul   ind
+3       rishi   aus
+4       abhi    uk
+
+
+ CREATE TABLE country_partitioned(
+    > id INT,
+    > name STRING)
+    > PARTITIONED BY (country_cd STRING)
+    > row format delimited fields terminated by ',';
+
+insert overwrite table country_partitioned PARTITION (country_cd='usa') select id, name from country where country_cd='usa';
+insert overwrite table country_partitioned PARTITION (country_cd='aus') select id, name from country where country_cd='aus';
+insert overwrite table country_partitioned PARTITION (country_cd='ind') select id, name from country where country_cd='ind';
+insert overwrite table country_partitioned PARTITION (country_cd='uk') select id, name from country where country_cd='uk';
+
+This was STATIC PARTITIONING.
+hard code
+Q.What is partitioning? How to load data into partition table?
+Q. When to use dynamic and static ?
+SO Came DYNAMIC PARTITIONING
+
+set hive.dynamic.partition.mode=nonstrict; //check
+
+insert overwrite table country_partitioned
+PARTITION (country_cd)
+select id,name,country_cd
+from country;   //Partition Key should always be in the end here in select statement
+show create table country_partitioned;
+OK
+CREATE TABLE `country_partitioned`(
+  `id` int,
+  `name` string)
+PARTITIONED BY (
+  `country_cd` string)
+ROW FORMAT SERDE
+  'org.apache.hadoop.hive.serde2.lazy.LazySimpleSerDe'
+WITH SERDEPROPERTIES (
+  'field.delim'=',',
+  'serialization.format'=',')
+STORED AS INPUTFORMAT
+  'org.apache.hadoop.mapred.TextInputFormat'
+OUTPUTFORMAT
+  'org.apache.hadoop.hive.ql.io.HiveIgnoreKeyTextOutputFormat'
+LOCATION
+  'hdfs://e2e-27-137.e2enetworks.net.in:8020/user/hive/warehouse/abhi.db/country_partitioned'
+TBLPROPERTIES (
+  'transient_lastDdlTime'='1499518434')
+
+
+
+Static partitioning used when like
+columns are stated for country ......................COLUMN NOT IN NON PARTIONED TABLE
+but needs partition on basis of region  north east west south
+
+insert overwrite table country_partitioned
+PARTITION (region='west')
+select
+id,name
+from country where state in ('RAJASTHAN','GUJRAT'); 
+
+
+-----------------------------
+create table employee(id int name string);------/user/hive/warehouse ---ctrlA default delimiter
+create table employee(id int name string) location '/user/nitin/employee';-----/user/nitin/employee  but still table is managed

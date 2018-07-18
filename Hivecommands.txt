@@ -1,0 +1,52 @@
+To ways to connect to hive
+1.hiveshell
+2.huewebview 
+
+
+/user/hive/warehouse where actual data of hive stored.
+everydatabase we create is a directory in hdfs;
+Commands
+1.show databases;
+2.create database if not exists abh;
+3.use abh;
+
+HIVEs area
+hadoop fs -ls /user/hive/warehouse/abh.db
+
+4.create table abh.drivers(
+    > driverID INT,
+    > name STRING,
+    > ssn BIGINT,
+    > location STRING,
+    > certified STRING,
+    > wageplan STRING)
+    > ROW FORMAT DELIMITED
+    > FIELDS TERMINATED BY ','
+    > STORED AS TEXTFILE;
+	These are default anyway.
+There is no data yet;
+We created Manage table.
+Other is external table.
+Now the  abh.db directory will have another direrctory inside it called drivers 
+created metastore
+5.Select * from abh.drivers;
+
+Now can load from both
+1.local
+LOAD DATA LOCAL INPATH 'PATH /DRIVERS.CSV' INTO TABLE ABH.DRIVERS;
+d2.hdfs
+LOAD DATA INPATH 'hdfs PATH /DRIVERS.CSV' INTO TABLE ABH.DRIVERS;
+
+LOAD DATA INPATH '/user/mudgal_abhinav19/driver_hive/timesheet.csv' INTO TABLE ABH.DRIVERS;
+
+After you load the file will get moved to hive. wont remain in previous place.
+
+JOIN
+SELECT d.driverId, d.name, t.total_hours, t.total_miles from abh.drivers d
+JOIN (SELECT driverId, sum(hours_logged)total_hours, sum(miles_logged)total_miles FROM abh.timesheet
+GROUP BY driverId ) t
+ON (d.driverId = t.driverId);
+
+
+
+IN external table location should come in last.
