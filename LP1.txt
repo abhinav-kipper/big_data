@@ -1,0 +1,114 @@
+Login to mysql
+mysql -h 101.53.130.146 -u mudgal_abhinav19 --local-infile
+
+Loaded the data in sql transactions.csv
+ CREATE TABLE transactions(id varchar(20),chain varchar(20), dept varchar(20),category varchar(20), company varchar(20),  brand varchar(20), date1 varchar(10), productsize int, productmeasure varchar(10), purchasequantity int, purchaseamount FLOAT);
+
+
+
+LOAD DATA LOCAL INFILE '/home/mudgal_abhinav19/transactions_practice.csv' INTO TABLE transactions FIELDS TERMINATED BY ',' ENCLOSED BY'"' LINES TERMINATED BY '\n';
+
+
+Around 10 lakh records.
+
+
+SQOOP data mysql to hdfs
+
+
+
+sqoop import --connect jdbc:mysql://101.53.130.146/mudgal_abhinav19 --username mudgal_abhinav19 -P --table transactions -m 1 --target-dir TransactionsData
+
+Directory gets created on hdfs TransactionsData with data loaded in it.
+
+-rw-r--r--   3 mudgal_abhinav19 labusers          0 2017-07-23 14:49 TransactionsData/_SUCCESS
+-rw-r--r--   3 mudgal_abhinav19 labusers   60317773 2017-07-23 14:49 TransactionsData/part-m-00000
+
+Sqoop is used to take data to Bigdata ecosystem (Hdfs,HBase).
+It runs one mapper only.
+
+
+INTERVIEW  QUESTIONS
+Q. In a sqoop job how many mappers are triggered by default?
+Ans 4.
+Q. In MapReduce Framework , No of mappers = No of inputsplit but there is no concept of inputsplit in Mysql (RDBMS) then on what basis data is divided among mappers?
+Ans. Decides on basis of primary key
+Q. How many reducers aree called by default?
+Sqoop job is a map only job. No need of reducer.
+
+
+If we ont put -m 1 in the sqoop command this error comes
+ERROR tool.ImportTool: Import failed: No primary key could be found for table transactions. Please specify one with --split-by or perform a sequential import with '-m 1'.
+
+
+
+Now,
+
+
+sqoop import --connect jdbc:mysql://101.53.130.146/mudgal_abhinav19 --username mudgal_abhinav19 -P --table transactions -split-by id --target-dir TransactionsData
+
+
+
+-rw-r--r--   3 mudgal_abhinav19 labusers          0 2017-07-23 15:17 TransactionsData/_SUCCESS
+-rw-r--r--   3 mudgal_abhinav19 labusers    7880230 2017-07-23 15:16 TransactionsData/part-m-00000
+-rw-r--r--   3 mudgal_abhinav19 labusers    6175607 2017-07-23 15:17 TransactionsData/part-m-00001
+-rw-r--r--   3 mudgal_abhinav19 labusers   20992989 2017-07-23 15:16 TransactionsData/part-m-00002
+-rw-r--r--   3 mudgal_abhinav19 labusers   25268947 2017-07-23 15:16 TransactionsData/part-m-00003
+
+4 mappers called  this time.
+
+SELECT MIN(`id`), MAX(`id`) FROM `transactions` pasted from logs .
+
+Sqoop calculated min n max of primary key and divide it into 4  parts to make 4  splits for 4 mappers.
+If give -m 100 along with it , will divide it in 100 splits.
+
+When setted -m 1 One mapper then no concept of split was needed so no issue came.
+
+
+transactions = LOAD 'user/mudgal_abhinav19/TransactionsData/' USING PigStorage(',') as (id:chararray,chain:chararray,dept:chararray,category:chararray,company:chararray,brand:chararray,date:chararray, productsize:float, productmeasure:chararray, purchasequantity:int, purchaseamount:float);
+
+
+I tried in hive top 10 customers based on amount spent.
+select id ,sum(purchaseamount) from transactions_staging group by id order by sum(purchaseamount) desc limit 10;
+
+It works . Well done. Just use  alias .
+
+select id ,sum(purchaseamount) AS spendings from transactions_staging group by id order by spendings desc limit 10;
+
+PIG
+transactions = LOAD 'TransactionsData/' USING PigStorage(',') as (id:chararray,chain:chararray,dept:chararray,category:chararray,company:chararray,brand:chararray,date:chararray, productsize:float, productmeasure:chararray, purchasequantity:int, purchaseamount:float);
+
+top10cust1 = group transactions by id;
+
+
+foreach_data = FOREACH top10cust1 GENERATE group,SUM(transactions.purchaseamount) as spendings;
+
+order_by_data = ORDER foreach_data BY spendings DESC;
+top10cust = LIMIT order_by_data 10;
+DUMP top10cust;
+store top10cust INTO 'top10cust';
+
+
+pig lp1.pig
+
+
+
+
+sqoop to hive
+
+
+
+
+sqoop import --connect jdbc:mysql://101.53.130.146/mudgal_abhinav19 --username mudgal_abhinav19 -password DszEyFSZhaRQ92O --table transactions --hive-import --hive-database abhi --hive-table  transactions_staging -m 1
+
+
+chainsales
+
+
+transactions = LOAD 'TransactionsData/' USING PigStorage(',') as (id:chararray,chain:chararray,dept:chararray,category:chararray,company:chararray,brand:chararray,date:chararray, productsize:float, productmeasure:chararray, purchasequantity:int, purchaseamount:float);
+
+
+
+chainlevel = group transactions by chain;
+foreach_data = FOREACH chainlevel GENERATE group,SUM(transactions.purchasequantity) as quantity,SUM(transactions.purchaseamount) as sales;
+dump foreach_data;
+store foreach_data INTO 'chainsales';
